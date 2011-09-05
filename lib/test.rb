@@ -1,6 +1,6 @@
 require './method-filter.rb'
 
-class Client
+class Client < Filter::Methods
   def initialize
     after_before_filter([:bye, :cya], [:hey, :hello], [:hey, :hello])
   end
