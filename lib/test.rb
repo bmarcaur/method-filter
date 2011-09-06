@@ -2,15 +2,15 @@ require './method-filter.rb'
 
 class Client < Filter::Methods
   def initialize
-    after_before_filter([:bye, :cya], [:hey, :hello], [:hey, :hello])
+    after_before_filter([:bye => 'bye'], [:hey, :hello => ['he', 'llo']], [:hey, :hello])
   end
   
-  def hello
-    puts 'hello'
+  def hello(str, str2)
+    puts str + str2
   end
   
-  def bye
-    puts 'bye'
+  def bye(str)
+    puts str
   end
   
   def hey
