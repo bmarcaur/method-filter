@@ -25,10 +25,11 @@ class Client
 
   def change_var
     @testvar = 'bye'
+    puts @testvar
   end
 end
 
 cli = Client.new
 cli.change_var
 
-cli.hello 'he', 'llo', 'hahahahah'
+cli.hello 'he', 'llo'

@@ -1,4 +1,5 @@
 #TODO 
+#need to change the before/after to only accept instance variables
 # Create a Without method when the before filter is called to allow old behavior 
 # add the removal of filters
 
@@ -6,6 +7,7 @@ class Object
   private
   def create_method_filter(original, before, after)
     old_method = self.class.instance_method(original)
+    puts self.instance_variable_get('@testvar')
     self.class.send(:define_method, original) do |*args|
       self.send before, *args[old_method.arity..args.length-1] unless before.nil?
       old_method.bind(self).call *args[0..old_method.arity-1]
