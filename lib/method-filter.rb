@@ -1,79 +1,34 @@
 #TODO 
 # Create a Without method when the before filter is called to allow old behavior 
 # add the removal of filters
-# check to make sure methods with arguments 
 
-module Filter
-  class Methods
-    private
-    def filter(original, before, after)
-      #ensure that the arguments are either a symbol or array of symbols
-      test_argument_format [original, before, after]
-      #ensure that the arguments are arrays because a single symbol can be given
-      original = {original => nil} if (original.class != Array and !original.nil?)
-      before = {before => nil} if (before.class != Array and !before.nil?)
-      after = {after => nil} if (after.class != Array and !after.nil?)
-      #for each original method append the before/after methods
-      original.each do |orig|
-        #save the old method before it is overwritten
-        old_method = self.class.instance_method(orig)
-        #create the new method calling all the filters
-        buff = create_method(orig){
-          #call before filters
-          before.each { |bef_key, value| self.send bef_key, value } unless before.nil?
-          #call original method
-          old_method.bind(self).call
-          #call after filters
-          after.each { |bef_key, value| self.send bef_key, value } unless after.nil?
-        }
-      end
+class Object
+  private
+  def create_method_filter(original, before, after)
+    old_method = self.class.instance_method(original)
+    self.class.send(:define_method, original) do |*args|
+      self.send before, *args[old_method.arity..args.length-1] unless before.nil?
+      old_method.bind(self).call *args[0..old_method.arity-1]
+      self.send after, *args[old_method.arity..args.length-1] unless after.nil?
     end
+  end
 
-    #override the old method with the new block
-    def create_method(name, &block)
-      self.class.send(:define_method, name, &block)
-    end
-    
-    def test_argument_format(test_arr)
-      test_arr.each do |test|
-        #if it isnt an array or a symbol its not correct
-        if !(test.class == Hash or test.class == Symbol or test.nil? ) 
-          raise ArgumentError, 'One of the arguments is not a symbol or array!'
-        else
-          #if it is an array we need to make sure all of its members are symbols
-          if test.class == Array
-            test.each do |children|
-              if children.class != Symbol
-                raise ArgumentError, 'One of the arrays contained a type other than a Symbol!'
-              end
-            end
-          end
-        end
-      end
-    end
-  
-    #method missing that will dispatch to the filter method properly
-    def method_missing(method, *args)
-      parsed_method = method.to_s.split('_')
-      if (parsed_method - ['before','after','filter']).length == 0 and parsed_method.length <= 3
-        if args.length < 2 or args.length != parsed_method.length
-          #raise an error because filter was called with the wrong number of arguments
-          raise(ArgumentError,'Too many arguments!') if args.length > 3
-          raise(ArgumentError,'Too few arguments!') if args.length < 3
-        else
-          #split arguments and map them to their before/after filter
-          arg_arr = {}
-          parsed_method.each_with_index do |filter, i|
-            arg_arr[filter] = args[i+1]
-          end
-          puts arg_arr.inspect
-          #call the filter method using the prepared data
-          filter(args[0], arg_arr['before'], arg_arr['after'])
+  def method_missing(method, *args)
+    if ['before_filter', 'after_filter'].include?(method.to_s)
+      if args.length == 2
+        original_method = args[0]
+        added_method = args[1]
+        case method.to_s
+        when 'before_filter'
+          create_method_filter(original_method, added_method, nil)
+        when 'after_filter'
+          create_method_filter(original_method, nil, added_method)
         end
       else
-        #call super::missing method because the method called is not a filter
-        super
+        raise(ArgumentError,'Incorrect number of arguments!')
       end
+    else
+      super
     end
   end
 end
