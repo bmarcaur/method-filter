@@ -7,11 +7,13 @@ class Object
   private
   def create_method_filter(original, before, after)
     old_method = self.class.instance_method(original)
-    puts self.instance_variable_get('@testvar')
+    if self.class.instance_method(before).arity > 0 or self.class.instance_method(after).arity > 0
+      raise ArgumentError, 'Before/After filters do not support methods that require arguments'
+    end
     self.class.send(:define_method, original) do |*args|
-      self.send before, *args[old_method.arity..args.length-1] unless before.nil?
-      old_method.bind(self).call *args[0..old_method.arity-1]
-      self.send after, *args[old_method.arity..args.length-1] unless after.nil?
+      self.send before unless before.nil?
+      old_method.bind(self).call *args
+      self.send after unless after.nil?
     end
   end
 
@@ -20,14 +22,13 @@ class Object
       if args.length == 2
         original_method = args[0]
         added_method = args[1]
-        case method.to_s
-        when 'before_filter'
+        if method.to_s == 'before_filter'
           create_method_filter(original_method, added_method, nil)
-        when 'after_filter'
+        else
           create_method_filter(original_method, nil, added_method)
         end
       else
-        raise(ArgumentError,'Incorrect number of arguments!')
+        raise ArgumentError,'Incorrect number of arguments!'
       end
     else
       super

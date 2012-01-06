@@ -25,7 +25,6 @@ class Client
 
   def change_var
     @testvar = 'bye'
-    puts @testvar
   end
 end
 
